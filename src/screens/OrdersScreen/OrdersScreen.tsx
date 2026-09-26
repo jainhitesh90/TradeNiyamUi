@@ -4,6 +4,7 @@ import { FlatList, View } from 'react-native';
 import { ApiError, api, endpoints } from '@/api';
 import { Card, CustomText, Loader, Screen } from '@/components';
 import { styles } from '@/screens/OrdersScreen/styles';
+import { formatPrice } from '@/utils';
 
 type Order = {
   groww_order_id: string;
@@ -121,8 +122,4 @@ function OrderRow({ order }: { order: Order }) {
       </CustomText>
     </Card>
   );
-}
-
-function formatPrice(value: number): string {
-  return Number.isFinite(value) ? value.toFixed(2) : '—';
 }

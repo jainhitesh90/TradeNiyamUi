@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native';
 import { ApiError, api, endpoints } from '@/api';
 import { Card, CustomText, Loader, Screen } from '@/components';
 import { styles } from '@/screens/ProfileScreen/styles';
+import { displayValue } from '@/utils';
 
 type User = {
   userId?: string;
@@ -99,8 +100,4 @@ function Field({ id, label, value }: { id: string; label: string; value: string 
       </CustomText>
     </View>
   );
-}
-
-function displayValue(value: string | null | undefined): string {
-  return value?.trim() ? value : '—';
 }

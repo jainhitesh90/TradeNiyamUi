@@ -5,13 +5,12 @@ import { styles } from '@/screens/HomeScreen/styles';
 import { useTheme } from '@/theme';
 
 type BrokerStatusProps = {
-  connected: boolean;
   message: string;
   actionLabel?: string;
   onAction?: () => void;
 };
 
-export function BrokerStatus({ connected, message, actionLabel, onAction }: BrokerStatusProps) {
+export function BrokerStatus({ message, actionLabel, onAction }: BrokerStatusProps) {
   const { colors } = useTheme();
 
   return (
@@ -20,9 +19,7 @@ export function BrokerStatus({ connected, message, actionLabel, onAction }: Brok
       accessibilityLabel={message}
       style={[styles.statusBar, { backgroundColor: colors.highlight, borderBottomColor: colors.highlightBorder }]}
     >
-      <View
-        style={[styles.statusDot, { backgroundColor: connected ? colors.success : colors.danger }]}
-      />
+      <View style={[styles.statusDot, { backgroundColor: colors.danger }]} />
       <CustomText id="home-broker-status" variant="small" numberOfLines={1} style={[styles.statusMessage, { color: colors.onHighlight }]}>
         {message}
       </CustomText>

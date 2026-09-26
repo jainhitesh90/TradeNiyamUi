@@ -1,18 +1,46 @@
 import { router } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Switch } from 'react-native-paper';
 
-import { api, clearAuthSession } from '@/api';
+import { api, clearAuthSession, endpoints } from '@/api';
 import { CustomText, Screen } from '@/components';
 import { styles } from '@/screens/SettingsScreen/styles';
 import { DEFAULT_THEME, useTheme } from '@/theme';
+import { formatBalance } from '@/utils';
 
-const BALANCE_MARGIN = '₹1,25,430.50';
+type UserBalance = {
+  balance: number | string | null;
+};
 
 export function SettingsScreen() {
   const { colors, isDark, setTheme } = useTheme();
   const rowStyle = [styles.row, { borderBottomColor: colors.border }];
+  const [balance, setBalance] = useState('—');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get<UserBalance>(endpoints.balance, {
+        headers: { Accept: '*/*' },
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setBalance(formatBalance(data.balance));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBalance('—');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function logout() {
     clearAuthSession();
@@ -45,11 +73,11 @@ export function SettingsScreen() {
               color={colors.text}
             />
             <View style={styles.copy}>
-              <CustomText id="settings-balance-label" variant="body">
-                Balance Margin
+              <CustomText id="settings-balance-value" variant="medium" style={styles.balanceValue}>
+                {balance}
               </CustomText>
-              <CustomText id="settings-balance-value" variant="small">
-                {BALANCE_MARGIN}
+              <CustomText id="settings-balance-label" variant="caption">
+                Stocks, F&O balance
               </CustomText>
             </View>
           </View>

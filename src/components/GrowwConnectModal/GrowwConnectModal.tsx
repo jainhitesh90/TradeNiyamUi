@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 import { ApiError, api, endpoints } from '@/api';
+import { openInBrowser } from '@/browser/openInBrowser';
 import { AppModal } from '@/components/AppModal';
 import { CustomButton } from '@/components/CustomButton';
 import { CustomText } from '@/components/CustomText';
 import { styles } from '@/components/GrowwConnectModal/styles';
 import { TextField } from '@/components/TextField';
-import { openInBrowser } from '@/browser/openInBrowser';
 
 type BrokerMapping = {
   brokerStatus: string;
@@ -74,7 +74,6 @@ export function GrowwConnectModal({
     setFormError(null);
     try {
       await api.post(endpoints.markBrokerAsConnected, {
-        brokerId: 'groww',
       }, {
         headers: { Accept: '*/*' },
       });
@@ -106,7 +105,6 @@ export function GrowwConnectModal({
     setSaving(true);
     try {
       await api.post(endpoints.brokerMapping, {
-        brokerId: 'groww',
         apiKey: key,
         apiSecret: secret,
       }, {

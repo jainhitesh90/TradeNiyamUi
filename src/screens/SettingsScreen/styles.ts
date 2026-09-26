@@ -22,6 +22,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  balanceValue: {
+    fontSize: 16,
+  },
 });
 
 export type SettingsScreenStyles = typeof styles;

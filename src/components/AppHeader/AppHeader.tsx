@@ -7,6 +7,7 @@ import { readAuthSession } from '@/api';
 import { styles } from '@/components/AppHeader/styles';
 import { CustomText } from '@/components/CustomText';
 import { useTheme } from '@/theme';
+import { initialsFrom } from '@/utils';
 
 export function AppHeader() {
   const { colors } = useTheme();
@@ -82,22 +83,5 @@ const pageTitles: Record<string, string> = {
 function pageTitle(pathname: string): string {
   const segment = pathname.split('/').filter(Boolean).pop() ?? '';
   return pageTitles[segment] ?? 'TradeNiyam';
-}
-
-function initialsFrom(name: string | null | undefined, email: string | null | undefined): string {
-  const trimmed = name?.trim() ?? '';
-  if (trimmed) {
-    const parts = trimmed.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-    }
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
-  const emailInitial = email?.trim()[0];
-  if (emailInitial) {
-    return emailInitial.toUpperCase();
-  }
-  return '?';
 }
 
