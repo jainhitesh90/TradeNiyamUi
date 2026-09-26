@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# portable JDK used for local Android builds
+.jdk/
+
 # Expo
 .expo/
 dist/

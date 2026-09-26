@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Switch } from 'react-native-paper';
 
 import { api, clearAuthSession } from '@/api';
-import { CustomText, Screen, useToast } from '@/components';
+import { CustomText, Screen } from '@/components';
 import { styles } from '@/screens/SettingsScreen/styles';
 import { DEFAULT_THEME, useTheme } from '@/theme';
 
@@ -12,7 +12,6 @@ const BALANCE_MARGIN = '₹1,25,430.50';
 
 export function SettingsScreen() {
   const { colors, isDark, setTheme } = useTheme();
-  const toast = useToast();
   const rowStyle = [styles.row, { borderBottomColor: colors.border }];
 
   function logout() {
@@ -55,22 +54,25 @@ export function SettingsScreen() {
             </View>
           </View>
         </View>
-        <Pressable accessibilityRole="button" onPress={() => toast.show('Reports downloaded')} style={rowStyle}>
+        <View accessibilityState={{ disabled: true }} style={rowStyle}>
           <View style={styles.rowMain}>
-            <SettingIcon name={{ ios: 'doc.text', android: 'description', web: 'description' }} color={colors.text} />
-            <CustomText id="settings-reports" variant="body" style={styles.copy}>
+            <SettingIcon
+              name={{ ios: 'doc.text', android: 'description', web: 'description' }}
+              color={colors.textDim}
+            />
+            <CustomText id="settings-reports" variant="body" style={[styles.copy, { color: colors.textDim }]}>
               Reports
             </CustomText>
           </View>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => toast.show('F&O locked')} style={rowStyle}>
+        </View>
+        <View accessibilityState={{ disabled: true }} style={rowStyle}>
           <View style={styles.rowMain}>
-            <SettingIcon name={{ ios: 'lock', android: 'lock', web: 'lock' }} color={colors.text} />
-            <CustomText id="settings-lock-fno" variant="body" style={styles.copy}>
+            <SettingIcon name={{ ios: 'lock', android: 'lock', web: 'lock' }} color={colors.textDim} />
+            <CustomText id="settings-lock-fno" variant="body" style={[styles.copy, { color: colors.textDim }]}>
               Lock F&O trading
             </CustomText>
           </View>
-        </Pressable>
+        </View>
         <Pressable accessibilityRole="button" onPress={logout} style={rowStyle}>
           <View style={styles.rowMain}>
             <SettingIcon

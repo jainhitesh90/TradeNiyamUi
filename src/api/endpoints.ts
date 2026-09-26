@@ -3,7 +3,7 @@ export const endpoints = {
   signUp: '/auth/sign-up',
   user: '/user',
   brokers: '/brokers',
-  brokerMapping: '/user/broker-mapping',
-  markBrokerAsConnected: '/user/mark-broker-as-connected',
+  brokerMapping: '/groww/map-broker-to-user',
+  markBrokerAsConnected: '/groww/mark-as-connected',
   orders: '/orders',
 } as const;
