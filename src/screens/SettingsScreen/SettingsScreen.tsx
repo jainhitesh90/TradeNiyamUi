@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Switch } from 'react-native-paper';
 
-import { api, clearAuthSession, endpoints } from '@/api';
+import { api, clearAuthSession, endpoints, readAuthSession } from '@/api';
 import { CustomText, Screen } from '@/components';
 import { styles } from '@/screens/SettingsScreen/styles';
 import { DEFAULT_THEME, useTheme } from '@/theme';
@@ -18,6 +18,13 @@ export function SettingsScreen() {
   const { colors, isDark, setTheme } = useTheme();
   const rowStyle = [styles.row, { borderBottomColor: colors.border }];
   const [balance, setBalance] = useState('—');
+  const [brokerConnected, setBrokerConnected] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setBrokerConnected(readAuthSession()?.brokerStatus === 'CONNECTED');
+    }, []),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +108,29 @@ export function SettingsScreen() {
             </CustomText>
           </View>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/connect-broker')}
+          style={rowStyle}
+        >
+          <View style={styles.rowMain}>
+            <SettingIcon
+              name={
+                brokerConnected
+                  ? { ios: 'link', android: 'link_off', web: 'link_off' }
+                  : { ios: 'link', android: 'link', web: 'link' }
+              }
+              color={colors.text}
+            />
+            <CustomText
+              id={brokerConnected ? 'settings-disconnect-broker' : 'settings-connect-broker'}
+              variant="body"
+              style={styles.copy}
+            >
+              {brokerConnected ? 'Disconnect broker' : 'Connect broker'}
+            </CustomText>
+          </View>
+        </Pressable>
         <Pressable accessibilityRole="button" onPress={logout} style={rowStyle}>
           <View style={styles.rowMain}>
             <SettingIcon

@@ -75,7 +75,7 @@ const pageTitles: Record<string, string> = {
   orders: 'Orders',
   rules: 'Rules',
   profile: 'Profile',
-  'connect-broker': 'Connect to broker',
+  'connect-broker': 'Brokers',
   home: 'Home',
   settings: 'Settings',
 };

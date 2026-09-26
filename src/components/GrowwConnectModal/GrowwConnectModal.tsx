@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { ApiError, api, endpoints } from '@/api';
+import { ApiError, api, endpoints, updateBrokerConnection } from '@/api';
 import { openInBrowser } from '@/browser/openInBrowser';
 import { AppModal } from '@/components/AppModal';
 import { CustomButton } from '@/components/CustomButton';
@@ -77,6 +77,7 @@ export function GrowwConnectModal({
       }, {
         headers: { Accept: '*/*' },
       });
+      updateBrokerConnection({ brokerId: 'groww', brokerStatus: 'CONNECTED' });
       leaveToHome();
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -110,6 +111,7 @@ export function GrowwConnectModal({
       }, {
         headers: { Accept: '*/*' },
       });
+      updateBrokerConnection({ brokerId: 'groww', brokerStatus: 'CONNECTED' });
       leaveToHome();
     } catch (err: unknown) {
       if (err instanceof ApiError) {

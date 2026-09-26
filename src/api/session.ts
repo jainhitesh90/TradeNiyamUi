@@ -1,12 +1,20 @@
+export type BrokerConnection = 'CONNECTED' | 'DISCONNECTED';
+
 export type AuthSession = {
   token: string;
   name: string | null;
   emailId: string | null;
+  brokerId: string | null;
+  brokerStatus: BrokerConnection | null;
 };
 
 const AUTH_SESSION_KEY = 'auth';
 
 let memorySession: AuthSession | null = null;
+
+function normalizeBrokerStatus(value: unknown): BrokerConnection | null {
+  return value === 'CONNECTED' || value === 'DISCONNECTED' ? value : null;
+}
 
 function storage(): Storage | null {
   if (typeof sessionStorage === 'undefined') {
@@ -16,8 +24,25 @@ function storage(): Storage | null {
 }
 
 export function saveAuthSession(session: AuthSession): void {
-  memorySession = session;
-  storage()?.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  memorySession = {
+    token: session.token,
+    name: session.name ?? null,
+    emailId: session.emailId ?? null,
+    brokerId: session.brokerId ?? null,
+    brokerStatus: normalizeBrokerStatus(session.brokerStatus),
+  };
+  storage()?.setItem(AUTH_SESSION_KEY, JSON.stringify(memorySession));
+}
+
+export function updateBrokerConnection(connection: {
+  brokerId: string | null;
+  brokerStatus: BrokerConnection | null;
+}): void {
+  const current = readAuthSession();
+  if (!current) {
+    return;
+  }
+  saveAuthSession({ ...current, ...connection });
 }
 
 export function clearAuthSession(): void {
@@ -49,6 +74,8 @@ export function readAuthSession(): AuthSession | null {
       token: parsed.token,
       name: typeof parsed.name === 'string' ? parsed.name : null,
       emailId: typeof parsed.emailId === 'string' ? parsed.emailId : null,
+      brokerId: typeof parsed.brokerId === 'string' ? parsed.brokerId : null,
+      brokerStatus: normalizeBrokerStatus(parsed.brokerStatus),
     };
     return memorySession;
   } catch {
