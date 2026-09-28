@@ -8,5 +8,5 @@ export const endpoints = {
   brokerMapping: '/groww/map-broker-to-user',
   markBrokerAsConnected: '/groww/mark-as-connected',
   markBrokerAsDisconnected: '/groww/mark-as-disconnected',
-  orders: '/orders',
+  orders: '/user/orders',
 } as const;

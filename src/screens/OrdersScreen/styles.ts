@@ -2,32 +2,61 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
-    paddingTop: 20,
-    paddingHorizontal: 20,
-  },
-  subtitle: {
-    marginTop: 6,
-    marginBottom: 16,
+    flex: 1,
+    paddingTop: 8,
   },
   error: {
     marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  empty: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   list: {
-    gap: 12,
+    flex: 1,
+  },
+  listContent: {
     paddingBottom: 32,
   },
-  orderCard: {
-    marginBottom: 0,
+  dateHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    fontWeight: '700',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  left: {
+    flex: 1,
+    gap: 2,
+  },
+  right: {
+    alignItems: 'flex-end',
+    gap: 2,
   },
   symbol: {
-    flex: 1,
-    fontWeight: '600',
+    fontWeight: '500',
+  },
+  qtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  footer: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
 });
 

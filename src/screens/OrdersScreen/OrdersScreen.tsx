@@ -1,82 +1,112 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
 import { ApiError, api, endpoints } from '@/api';
-import { Card, CustomText, Loader, Screen } from '@/components';
+import { CustomText, Loader, Screen } from '@/components';
 import { styles } from '@/screens/OrdersScreen/styles';
+import { useTheme } from '@/theme';
 import { formatPrice } from '@/utils';
 
+const PAGE_SIZE = 20;
+
 type Order = {
-  groww_order_id: string;
+  order_id: string;
+  broker_order_id?: string;
   trading_symbol: string;
   order_status: string;
   quantity: number;
+  price: number;
   filled_quantity: number;
   average_fill_price: number;
-  exchange: string;
   order_type: string;
   transaction_type: string;
   product: string;
   created_at: string;
 };
 
-type OrdersData = {
-  status?: string | null;
-  payload?: {
-    order_list?: Order[];
-  };
+type OrdersPage = {
+  orders?: ApiOrder[];
+  totalCount?: number;
+  offset?: number;
+  limit?: number;
 };
+
+type ApiOrder = Partial<Order> & {
+  orderId?: string;
+  brokerOrderId?: string;
+  tradingSymbol?: string;
+  orderStatus?: string;
+  quantity?: number;
+  price?: number;
+  filledQuantity?: number;
+  averageFillPrice?: number;
+  orderType?: string;
+  transactionType?: string;
+  createdAt?: string;
+};
+
+type OrderListItem =
+  | { kind: 'date'; id: string; title: string }
+  | { kind: 'order'; id: string; order: Order };
 
 export function OrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [status, setStatus] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const paging = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadPage = useCallback((offset: number) => {
+    const firstPage = offset === 0;
+    if (!firstPage) {
+      paging.current = true;
+      setLoadingMore(true);
+    }
 
-    api
-      .get<OrdersData>(endpoints.orders, {
-        query: { segment: 'FNO', page: 0, page_size: 100 },
+    return api
+      .get<OrdersPage>(endpoints.orders, {
+        query: { offset, limit: PAGE_SIZE },
         headers: { Accept: '*/*' },
       })
       .then((data) => {
-        if (cancelled) {
-          return;
-        }
-        setStatus(data.status ?? null);
-        setOrders(data.payload?.order_list ?? []);
+        const rawOrders = data && Array.isArray(data.orders) ? data.orders : [];
+        const page = rawOrders.map(normalizeOrder);
+        setTotalCount(typeof data?.totalCount === 'number' ? data.totalCount : page.length);
+        setOrders((current) => (firstPage ? page : mergeOrders(current, page)));
+        setError(null);
       })
       .catch((err: unknown) => {
-        if (cancelled) {
-          return;
+        const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Request failed';
+        if (firstPage) {
+          setError(message);
+          setOrders([]);
         }
-        if (err instanceof ApiError) {
-          setError(err.message);
-          return;
-        }
-        setError(err instanceof Error ? err.message : 'Request failed');
       })
       .finally(() => {
-        if (!cancelled) {
+        if (firstPage) {
           setLoading(false);
         }
+        paging.current = false;
+        setLoadingMore(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadPage(0);
+  }, [loadPage]);
+
+  function loadMore() {
+    if (paging.current || loading || loadingMore || orders.length === 0 || orders.length >= totalCount) {
+      return;
+    }
+    loadPage(orders.length);
+  }
+
+  const rows = groupByDate(orders);
 
   return (
     <Screen style={styles.container}>
-      <CustomText id="orders-title" variant="large">
-        Orders
-      </CustomText>
-      <CustomText id="orders-subtitle" variant="small" style={styles.subtitle}>
-        F&O orders{status ? ` · ${status}` : ''}
-      </CustomText>
       {loading ? <Loader /> : null}
       {error ? (
         <CustomText id="orders-error" variant="error" style={styles.error}>
@@ -84,42 +114,184 @@ export function OrdersScreen() {
         </CustomText>
       ) : null}
       {!loading && !error && orders.length === 0 ? (
-        <CustomText id="orders-empty" variant="small">
+        <CustomText id="orders-empty" variant="small" style={styles.empty}>
           No orders
         </CustomText>
       ) : null}
       <FlatList
-        data={orders}
-        keyExtractor={(item) => item.groww_order_id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => <OrderRow order={item} />}
+        data={rows}
+        keyExtractor={(item) => item.id}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        renderItem={({ item }) =>
+          item.kind === 'date' ? (
+            <CustomText id={`orders-date-${item.title}`} variant="body" style={styles.dateHeader}>
+              {item.title}
+            </CustomText>
+          ) : (
+            <OrderRow order={item.order} />
+          )
+        }
+        ListFooterComponent={loadingMore ? <View style={styles.footer}><Loader /></View> : null}
       />
     </Screen>
   );
 }
 
 function OrderRow({ order }: { order: Order }) {
-  const id = order.groww_order_id;
+  const { colors } = useTheme();
+  const id = order.order_id || order.trading_symbol;
+  const buy = order.transaction_type === 'BUY';
+  const executed = order.order_status === 'EXECUTED';
 
   return (
-    <Card style={styles.orderCard}>
-      <View style={styles.row}>
-        <CustomText id={`order-${id}-symbol`} variant="body" style={styles.symbol}>
-          {order.trading_symbol}
+    <View style={[styles.row, { borderBottomColor: colors.border }]}>
+      <View style={styles.left}>
+        <CustomText id={`order-${id}-side`} variant="caption" style={{ color: buy ? colors.success : colors.danger }}>
+          {order.transaction_type} · {titleCase(order.order_type)}
         </CustomText>
-        <CustomText id={`order-${id}-side`} variant={order.transaction_type === 'BUY' ? 'success' : 'danger'}>
-          {order.transaction_type}
+        <CustomText
+          id={`order-${id}-symbol`}
+          variant="small"
+          numberOfLines={1}
+          style={[styles.symbol, { color: colors.textSecondary }]}
+        >
+          {formatContractName(order.trading_symbol)}
+        </CustomText>
+        <CustomText id={`order-${id}-time`} variant="caption" style={{ color: colors.textMuted }}>
+          {formatOrderTime(order.created_at)}
         </CustomText>
       </View>
-      <CustomText id={`order-${id}-status`} variant="small">
-        {order.order_status} · {order.order_type} · {order.exchange} · {order.product}
-      </CustomText>
-      <CustomText id={`order-${id}-qty`} variant="small">
-        Qty {order.filled_quantity}/{order.quantity} · Avg {formatPrice(order.average_fill_price)}
-      </CustomText>
-      <CustomText id={`order-${id}-time`} variant="caption">
-        {order.created_at}
-      </CustomText>
-    </Card>
+      <View style={styles.right}>
+        <CustomText id={`order-${id}-product`} variant="caption" style={{ color: colors.textMuted }}>
+          {productLabel(order.product)}
+        </CustomText>
+        <View style={styles.qtyRow}>
+          <View style={[styles.dot, { backgroundColor: executed ? colors.success : colors.danger }]} />
+          <CustomText id={`order-${id}-qty`} variant="small" style={[styles.symbol, { color: colors.textSecondary }]}>
+            {displayQuantity(order)}
+          </CustomText>
+        </View>
+        <CustomText id={`order-${id}-avg`} variant="caption" style={{ color: colors.textMuted }}>
+          Avg ₹{formatPrice(displayPrice(order))}
+        </CustomText>
+      </View>
+    </View>
   );
+}
+
+function normalizeOrder(raw: ApiOrder): Order {
+  return {
+    order_id: text(raw.order_id ?? raw.orderId),
+    broker_order_id: text(raw.broker_order_id ?? raw.brokerOrderId),
+    trading_symbol: text(raw.trading_symbol ?? raw.tradingSymbol),
+    order_status: text(raw.order_status ?? raw.orderStatus),
+    quantity: numberValue(raw.quantity),
+    price: numberValue(raw.price),
+    filled_quantity: numberValue(raw.filled_quantity ?? raw.filledQuantity),
+    average_fill_price: numberValue(raw.average_fill_price ?? raw.averageFillPrice),
+    order_type: text(raw.order_type ?? raw.orderType),
+    transaction_type: text(raw.transaction_type ?? raw.transactionType),
+    product: text(raw.product),
+    created_at: text(raw.created_at ?? raw.createdAt),
+  };
+}
+
+function text(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function displayQuantity(order: Order): number {
+  return order.filled_quantity > 0 ? order.filled_quantity : order.quantity;
+}
+
+function displayPrice(order: Order): number {
+  return order.average_fill_price > 0 ? order.average_fill_price : order.price;
+}
+
+function numberValue(value: unknown): number {
+  const amount = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function mergeOrders(current: Order[], page: Order[]): Order[] {
+  const seen = new Set(current.map((order) => order.order_id));
+  const next = page.filter((order) => !seen.has(order.order_id));
+  return [...current, ...next];
+}
+
+function groupByDate(orders: Order[]): OrderListItem[] {
+  const rows: OrderListItem[] = [];
+  let lastTitle = '';
+  for (const order of orders) {
+    const title = formatOrderDate(order.created_at);
+    if (title !== lastTitle) {
+      rows.push({ kind: 'date', id: `date-${title}`, title });
+      lastTitle = title;
+    }
+    rows.push({ kind: 'order', id: order.order_id || `${order.trading_symbol}-${order.created_at}`, order });
+  }
+  return rows;
+}
+
+function formatOrderDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatOrderTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function titleCase(value: string): string {
+  if (value.length === 2) {
+    return value;
+  }
+  const lower = value.toLowerCase();
+  return lower ? `${lower[0].toUpperCase()}${lower.slice(1)}` : '';
+}
+
+function productLabel(product: string): string {
+  if (product === 'NRML' || product === 'CNC') {
+    return 'Delivery';
+  }
+  if (product === 'MIS') {
+    return 'Intraday';
+  }
+  return product;
+}
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const;
+const MONTHLY_CONTRACT = /^([A-Z]+?)(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d+(?:\.\d+)?)(CE|PE)$/;
+
+function formatContractName(symbol: string): string {
+  if (!symbol) {
+    return '';
+  }
+  const match = MONTHLY_CONTRACT.exec(symbol);
+  if (!match) {
+    return symbol;
+  }
+
+  const [, underlying, year, month, strike, option] = match;
+  const monthIndex = MONTHS.indexOf(month as (typeof MONTHS)[number]);
+  const expiryDay = lastTuesday(2000 + Number(year), monthIndex);
+  const monthLabel = `${month[0]}${month.slice(1).toLowerCase()}`;
+  const optionLabel = option === 'CE' ? 'Call' : 'Put';
+  return `${underlying} ${expiryDay} ${monthLabel} ${strike} ${optionLabel}`;
+}
+
+function lastTuesday(year: number, monthIndex: number): number {
+  const lastDay = new Date(year, monthIndex + 1, 0);
+  const daysAfterTuesday = (lastDay.getDay() - 2 + 7) % 7;
+  return lastDay.getDate() - daysAfterTuesday;
 }
