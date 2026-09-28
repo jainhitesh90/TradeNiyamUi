@@ -3,6 +3,7 @@ export const endpoints = {
   signUp: '/auth/sign-up',
   user: '/user',
   balance: '/user/balance',
+  position: '/user/position',
   brokers: '/brokers',
   brokerMapping: '/groww/map-broker-to-user',
   markBrokerAsConnected: '/groww/mark-as-connected',
