@@ -209,5 +209,11 @@ function formatRupee(value: number): string {
 
 function formatPnl(value: number): string {
   const amount = formatRupee(value);
-  return value < 0 ? `-${amount}` : amount;
+  if (value < 0) {
+    return `-${amount}`;
+  }
+  if (value > 0) {
+    return `+${amount}`;
+  }
+  return amount;
 }

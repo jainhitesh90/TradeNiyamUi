@@ -22,6 +22,7 @@ type Order = {
   transaction_type: string;
   product: string;
   created_at: string;
+  exchange_time: string;
 };
 
 type OrdersPage = {
@@ -43,6 +44,8 @@ type ApiOrder = Partial<Order> & {
   orderType?: string;
   transactionType?: string;
   createdAt?: string;
+  exchange_time?: string;
+  exchangeTime?: string;
 };
 
 type OrderListItem =
@@ -161,7 +164,7 @@ function OrderRow({ order }: { order: Order }) {
           {formatContractName(order.trading_symbol)}
         </CustomText>
         <CustomText id={`order-${id}-time`} variant="caption" style={{ color: colors.textMuted }}>
-          {formatOrderTime(order.created_at)}
+          {formatOrderTime(order.exchange_time)}
         </CustomText>
       </View>
       <View style={styles.right}>
@@ -196,6 +199,7 @@ function normalizeOrder(raw: ApiOrder): Order {
     transaction_type: text(raw.transaction_type ?? raw.transactionType),
     product: text(raw.product),
     created_at: text(raw.created_at ?? raw.createdAt),
+    exchange_time: text(raw.exchange_time ?? raw.exchangeTime),
   };
 }
 
