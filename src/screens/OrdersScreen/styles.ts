@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 8,
   },
   error: {
     marginBottom: 12,
@@ -21,8 +20,13 @@ export const styles = StyleSheet.create({
   },
   dateHeader: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
     paddingBottom: 8,
+    zIndex: 2,
+    position: 'sticky',
+    top: -1,
+  },
+  dateTitle: {
     fontWeight: '700',
   },
   row: {

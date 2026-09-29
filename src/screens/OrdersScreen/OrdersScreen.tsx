@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { SectionList, View } from 'react-native';
 
 import { ApiError, api, endpoints } from '@/api';
 import { CustomText, Loader, Screen } from '@/components';
@@ -48,9 +48,10 @@ type ApiOrder = Partial<Order> & {
   exchangeTime?: string;
 };
 
-type OrderListItem =
-  | { kind: 'date'; id: string; title: string }
-  | { kind: 'order'; id: string; order: Order };
+type OrderSection = {
+  title: string;
+  data: Order[];
+};
 
 export function OrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -106,7 +107,7 @@ export function OrdersScreen() {
     loadPage(orders.length);
   }
 
-  const rows = groupByDate(orders);
+  const sections = groupByDate(orders);
 
   return (
     <Screen style={styles.container}>
@@ -121,25 +122,39 @@ export function OrdersScreen() {
           No orders
         </CustomText>
       ) : null}
-      <FlatList
-        data={rows}
-        keyExtractor={(item) => item.id}
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.order_id || `${item.trading_symbol}-${item.exchange_time}`}
         style={styles.list}
         contentContainerStyle={styles.listContent}
+        stickySectionHeadersEnabled
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
-        renderItem={({ item }) =>
-          item.kind === 'date' ? (
-            <CustomText id={`orders-date-${item.title}`} variant="body" style={styles.dateHeader}>
-              {item.title}
-            </CustomText>
-          ) : (
-            <OrderRow order={item.order} />
-          )
-        }
+        renderSectionHeader={({ section }) => <DateHeader title={section.title} />}
+        renderItem={({ item }) => <OrderRow order={item} />}
         ListFooterComponent={loadingMore ? <View style={styles.footer}><Loader /></View> : null}
       />
     </Screen>
+  );
+}
+
+function DateHeader({ title }: { title: string }) {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.dateHeader,
+        {
+          backgroundColor: colors.background,
+          boxShadow: `0 -3px 0 3px ${colors.background}`,
+        },
+      ]}
+    >
+      <CustomText id={`orders-date-${title}`} variant="body" style={styles.dateTitle}>
+        {title}
+      </CustomText>
+    </View>
   );
 }
 
@@ -226,18 +241,18 @@ function mergeOrders(current: Order[], page: Order[]): Order[] {
   return [...current, ...next];
 }
 
-function groupByDate(orders: Order[]): OrderListItem[] {
-  const rows: OrderListItem[] = [];
-  let lastTitle = '';
+function groupByDate(orders: Order[]): OrderSection[] {
+  const sections: OrderSection[] = [];
   for (const order of orders) {
     const title = formatOrderDate(order.created_at);
-    if (title !== lastTitle) {
-      rows.push({ kind: 'date', id: `date-${title}`, title });
-      lastTitle = title;
+    const last = sections[sections.length - 1];
+    if (last?.title === title) {
+      last.data.push(order);
+    } else {
+      sections.push({ title, data: [order] });
     }
-    rows.push({ kind: 'order', id: order.order_id || `${order.trading_symbol}-${order.created_at}`, order });
   }
-  return rows;
+  return sections;
 }
 
 function formatOrderDate(value: string): string {
