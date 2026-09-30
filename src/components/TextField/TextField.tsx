@@ -12,7 +12,7 @@ type TextFieldProps = {
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'number-pad' | 'decimal-pad';
   textContentType?: 'name' | 'username' | 'emailAddress' | 'telephoneNumber' | 'password' | 'newPassword';
   autoComplete?: 'name' | 'username' | 'email' | 'tel' | 'current-password' | 'new-password';
 };
