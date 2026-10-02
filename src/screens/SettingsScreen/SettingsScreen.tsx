@@ -153,8 +153,8 @@ export function SettingsScreen() {
                 Lock F&O trading
               </CustomText>
               {fnoLocked && pauseTill !== null ? (
-                <CustomText id="settings-lock-fno-until" variant="error">
-                  F&O trading locked until {formatIst(pauseTill)}
+                <CustomText id="settings-lock-fno-until" variant="caption" style={{ color: colors.warning }}>
+                  {lockMessage(pauseTill)}
                 </CustomText>
               ) : null}
               {lockError ? (
@@ -223,8 +223,16 @@ function parseEpoch(value: unknown): number | null {
   return Number.isFinite(amount) ? amount : null;
 }
 
-function formatIst(epochMs: number): string {
-  return new Date(epochMs).toLocaleString('en-IN', {
+function lockMessage(epochMs: number): string {
+  const pause = istParts(epochMs);
+  const now = istParts(Date.now());
+  const sameDay = pause.day === now.day && pause.month === now.month && pause.year === now.year;
+  const when = sameDay ? 'today' : `${pause.day} ${pause.month} ${pause.year}`;
+  return `F&O trading locked until ${pause.time} for ${when}`;
+}
+
+function istParts(epochMs: number): { day: string; month: string; year: string; time: string } {
+  const parts = new Intl.DateTimeFormat('en-IN', {
     timeZone: 'Asia/Kolkata',
     day: 'numeric',
     month: 'short',
@@ -232,7 +240,15 @@ function formatIst(epochMs: number): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  });
+  }).formatToParts(new Date(epochMs));
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? '';
+  const period = value('dayPeriod').toLowerCase();
+  return {
+    day: value('day'),
+    month: value('month'),
+    year: value('year'),
+    time: `${value('hour')}:${value('minute')} ${period}`.trim(),
+  };
 }
 
 function messageFrom(error: unknown): string {
