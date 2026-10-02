@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Switch } from 'react-native-paper';
 
-import { api, clearAuthSession, endpoints, readAuthSession } from '@/api';
+import { ApiError, api, clearAuthSession, endpoints, readAuthSession } from '@/api';
 import { CustomText, Screen } from '@/components';
 import { styles } from '@/screens/SettingsScreen/styles';
 import { DEFAULT_THEME, useTheme } from '@/theme';
@@ -19,11 +19,36 @@ export function SettingsScreen() {
   const rowStyle = [styles.row, { borderBottomColor: colors.border }];
   const [balance, setBalance] = useState('—');
   const [brokerConnected, setBrokerConnected] = useState(false);
+  const [pauseTill, setPauseTill] = useState<number | null>(null);
+  const [locking, setLocking] = useState(false);
+  const [lockError, setLockError] = useState<string | null>(null);
+
+  const loadKillSwitch = useCallback(() => {
+    return api
+      .get<FnoKillSwitch>(endpoints.fnoKillSwitch, { headers: { Accept: '*/*' } })
+      .then((data) => parseEpoch(data?.fno_kill_switch?.pauseTill));
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
+      let cancelled = false;
       setBrokerConnected(readAuthSession()?.brokerStatus === 'CONNECTED');
-    }, []),
+      loadKillSwitch()
+        .then((epoch) => {
+          if (!cancelled) {
+            setPauseTill(epoch);
+            setLockError(null);
+          }
+        })
+        .catch((err: unknown) => {
+          if (!cancelled) {
+            setLockError(messageFrom(err));
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [loadKillSwitch]),
   );
 
   useEffect(() => {
@@ -48,6 +73,26 @@ export function SettingsScreen() {
       cancelled = true;
     };
   }, []);
+
+  const fnoLocked = pauseTill !== null && pauseTill > Date.now();
+  const canLockFno = pauseTill !== null && pauseTill <= Date.now();
+
+  async function lockFno(enabled: boolean) {
+    if (!enabled || locking || fnoLocked) {
+      return;
+    }
+    setLocking(true);
+    setLockError(null);
+    try {
+      await api.patch(endpoints.fnoKillSwitch, { pauseTill: Date.now() + 5 * 60 * 1000 });
+      setPauseTill(await loadKillSwitch());
+      setLockError(null);
+    } catch (err: unknown) {
+      setLockError(messageFrom(err));
+    } finally {
+      setLocking(false);
+    }
+  }
 
   function logout() {
     clearAuthSession();
@@ -100,12 +145,32 @@ export function SettingsScreen() {
             </CustomText>
           </View>
         </View>
-        <View accessibilityState={{ disabled: true }} style={rowStyle}>
+        <View style={rowStyle}>
           <View style={styles.rowMain}>
-            <SettingIcon name={{ ios: 'lock', android: 'lock', web: 'lock' }} color={colors.textDim} />
-            <CustomText id="settings-lock-fno" variant="body" style={[styles.copy, { color: colors.textDim }]}>
-              Lock F&O trading
-            </CustomText>
+            <SettingIcon name={{ ios: 'lock', android: 'lock', web: 'lock' }} color={colors.text} />
+            <View style={styles.copy}>
+              <CustomText id="settings-lock-fno" variant="body">
+                Lock F&O trading
+              </CustomText>
+              {fnoLocked && pauseTill !== null ? (
+                <CustomText id="settings-lock-fno-until" variant="error">
+                  F&O trading locked until {formatIst(pauseTill)}
+                </CustomText>
+              ) : null}
+              {lockError ? (
+                <CustomText id="settings-lock-fno-error" variant="error">
+                  {lockError}
+                </CustomText>
+              ) : null}
+            </View>
+            {canLockFno ? (
+              <Switch
+                value={false}
+                disabled={locking}
+                onValueChange={lockFno}
+                color={colors.primary}
+              />
+            ) : null}
           </View>
         </View>
         <Pressable
@@ -145,6 +210,36 @@ export function SettingsScreen() {
       </View>
     </Screen>
   );
+}
+
+type FnoKillSwitch = {
+  fno_kill_switch?: {
+    pauseTill?: string | number | null;
+  };
+};
+
+function parseEpoch(value: unknown): number | null {
+  const amount = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function formatIst(epochMs: number): string {
+  return new Date(epochMs).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function messageFrom(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  return error instanceof Error ? error.message : 'Request failed';
 }
 
 function SettingIcon({ name, color }: { name: SymbolViewProps['name']; color: string }) {

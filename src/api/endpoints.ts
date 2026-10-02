@@ -10,4 +10,5 @@ export const endpoints = {
   brokerMapping: '/groww/map-broker-to-user',
   markBrokerAsConnected: '/groww/mark-as-connected',
   markBrokerAsDisconnected: '/groww/mark-as-disconnected',
+  fnoKillSwitch: '/groww-app/fno_kill_switch',
 } as const;
