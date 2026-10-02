@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "979742170879",
+    "project_id": "tradeniyam-c72e6",
+    "storage_bucket": "tradeniyam-c72e6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:979742170879:android:bce4e62e514c333877f6ca",
+        "android_client_info": {
+          "package_name": "com.tradeniyam.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyIvUjTv1HCO9bFM_aFY3YMoo_2iaL1G4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

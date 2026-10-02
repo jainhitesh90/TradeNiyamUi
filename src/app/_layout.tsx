@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 
 import { DialogProvider } from '@/components/AppDialog';
+import '@/notifications/pushNotifications';
 import { ToastProvider } from '@/components/AppToast';
 import { ThemeProvider, useTheme } from '@/theme';
 import { createNavigationTheme } from '@/theme/navigationTheme';

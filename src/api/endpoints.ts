@@ -11,4 +11,5 @@ export const endpoints = {
   rules: '/rules',
   brokers: '/brokers',
   fnoKillSwitch: '/trading/fno_kill_switch',
+  fcmToken: '/notifications/tokens',
 } as const;
