@@ -8,6 +8,7 @@ export function createPaperTheme(name: ThemeName): MD3Theme {
 
   return {
     ...base,
+    dark: name === 'dark',
     roundness: 3,
     colors: {
       ...base.colors,

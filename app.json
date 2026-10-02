@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/app_logo.png",
     "scheme": "tradeniyamui",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.tradeniyam.app",
       "usesCleartextTraffic": true,

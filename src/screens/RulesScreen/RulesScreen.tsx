@@ -7,6 +7,7 @@ import { ApiError, api, endpoints } from '@/api';
 import { CustomButton, CustomText, Loader, Screen, useDialog, useToast } from '@/components';
 import { styles } from '@/screens/RulesScreen/styles';
 import { useTheme } from '@/theme';
+import { formatPlainNumber, formatTradeDate, sanitizeDecimal, sanitizeDigits, shortRuleName } from '@/utils';
 
 type TradingRule = {
   code: string;
@@ -341,7 +342,7 @@ function RuleCard({
             testID={`rule-${rule.code}-value`}
             nativeID={`rule-${rule.code}-value`}
             accessibilityRole="button"
-            accessibilityLabel={hasValue ? formatRuleValue(rule) : `Set ${shortRuleName(rule.name)}`}
+            accessibilityLabel={hasValue ? formatPlainNumber(rule.value) : `Set ${shortRuleName(rule.name)}`}
             disabled={disabled}
             onPress={() => setEditing(true)}
             style={[
@@ -359,13 +360,13 @@ function RuleCard({
               numberOfLines={1}
               style={[styles.value, { color: hasValue ? colors.text : colors.link }]}
             >
-              {hasValue ? formatRuleValue(rule) : 'Set'}
+              {hasValue ? formatPlainNumber(rule.value) : 'Set'}
             </CustomText>
           </Pressable>
         )
       ) : (
         <CustomText id={`rule-${rule.code}-value`} variant="label" numberOfLines={1} style={styles.value}>
-          {hasValue ? formatRuleValue(rule) : ''}
+          {hasValue ? formatPlainNumber(rule.value) : ''}
         </CustomText>
       )}
       </View>
@@ -401,7 +402,7 @@ function RuleCard({
 }
 
 function inputTextByCode(rules: TradingRule[]): Record<string, string> {
-  return Object.fromEntries(rules.map((rule) => [rule.code, rule.value === null ? '' : String(rule.value)]));
+  return Object.fromEntries(rules.map((rule) => [rule.code, formatPlainNumber(rule.value)]));
 }
 
 function valuesByCode(rules: TradingRule[]): Record<string, number | null> {
@@ -443,39 +444,11 @@ function normalizeRule(rule: Partial<TradingRule>): TradingRule {
   };
 }
 
-function shortRuleName(name: string): string {
-  return name.replace(/\s+(per day|for the day)\b/gi, '').trim();
-}
-
-function formatTradeDate(value: string): string {
-  const [year, month, day] = value.split('-').map(Number);
-  if (!year || !month || !day) {
-    return value || '—';
-  }
-  return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatRuleValue(rule: TradingRule): string {
-  if (rule.value === null) {
-    return '';
-  }
-  return String(rule.value);
-}
-
 function sanitizeRuleInput(code: string, value: string): string {
   if (code === TRADE_COUNT) {
-    return value.replace(/[^\d]/g, '').slice(0, 6);
+    return sanitizeDigits(value);
   }
-  const cleaned = value.replace(/[^\d.]/g, '').slice(0, 6);
-  const dot = cleaned.indexOf('.');
-  if (dot === -1) {
-    return cleaned;
-  }
-  return `${cleaned.slice(0, dot + 1)}${cleaned.slice(dot + 1).replace(/\./g, '').slice(0, 2)}`;
+  return sanitizeDecimal(value);
 }
 
 function parseRuleValue(code: string, value: string): { value: number; error: null } | { value: null; error: string } {

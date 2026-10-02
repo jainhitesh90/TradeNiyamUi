@@ -8,7 +8,7 @@ import { ApiError, api, clearAuthSession, endpoints, readAuthSession } from '@/a
 import { CustomText, Screen } from '@/components';
 import { styles } from '@/screens/SettingsScreen/styles';
 import { DEFAULT_THEME, useTheme } from '@/theme';
-import { formatBalance } from '@/utils';
+import { formatBalance, formatLockMessage } from '@/utils';
 
 type UserBalance = {
   balance: number | string | null;
@@ -154,7 +154,7 @@ export function SettingsScreen() {
               </CustomText>
               {fnoLocked && pauseTill !== null ? (
                 <CustomText id="settings-lock-fno-until" variant="caption" style={{ color: colors.warning }}>
-                  {lockMessage(pauseTill)}
+                  {formatLockMessage(pauseTill)}
                 </CustomText>
               ) : null}
               {lockError ? (
@@ -221,34 +221,6 @@ type FnoKillSwitch = {
 function parseEpoch(value: unknown): number | null {
   const amount = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(amount) ? amount : null;
-}
-
-function lockMessage(epochMs: number): string {
-  const pause = istParts(epochMs);
-  const now = istParts(Date.now());
-  const sameDay = pause.day === now.day && pause.month === now.month && pause.year === now.year;
-  const when = sameDay ? 'today' : `${pause.day} ${pause.month} ${pause.year}`;
-  return `F&O trading locked until ${pause.time} for ${when}`;
-}
-
-function istParts(epochMs: number): { day: string; month: string; year: string; time: string } {
-  const parts = new Intl.DateTimeFormat('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).formatToParts(new Date(epochMs));
-  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? '';
-  const period = value('dayPeriod').toLowerCase();
-  return {
-    day: value('day'),
-    month: value('month'),
-    year: value('year'),
-    time: `${value('hour')}:${value('minute')} ${period}`.trim(),
-  };
 }
 
 function messageFrom(error: unknown): string {

@@ -1,9 +1,11 @@
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useMemo } from 'react';
 
 import { DialogProvider } from '@/components/AppDialog';
 import { ToastProvider } from '@/components/AppToast';
 import { ThemeProvider, useTheme } from '@/theme';
+import { createNavigationTheme } from '@/theme/navigationTheme';
 
 export default function RootLayout() {
   return (
@@ -18,10 +20,11 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, theme } = useTheme();
+  const navigationTheme = useMemo(() => createNavigationTheme(theme), [theme]);
 
   return (
-    <>
+    <NavigationThemeProvider value={navigationTheme}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -29,6 +32,6 @@ function RootNavigator() {
         }}
       />
       <StatusBar style={isDark ? 'light' : 'dark'} />
-    </>
+    </NavigationThemeProvider>
   );
 }

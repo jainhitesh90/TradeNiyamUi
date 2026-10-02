@@ -13,7 +13,10 @@ export default function TabLayout() {
       <Tabs
         initialRouteName="performance"
         tabBar={(props) => <AppTabBar {...props} />}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: colors.background },
+        }}
       >
         <Tabs.Screen name="performance" options={{ title: 'Performance' }} />
         <Tabs.Screen name="position" options={{ title: 'Position' }} />

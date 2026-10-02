@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError, api, endpoints, saveAuthSession, type AuthSession } from '@/api';
 import { CustomButton, CustomText, Screen, TextField, useDialog } from '@/components';
 import { styles } from '@/screens/AuthScreen/styles';
+import { normalizePhone } from '@/utils';
 
 type AuthRequest = {
   name?: string;
@@ -28,10 +29,6 @@ type FieldErrors = {
 const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[0-9]{10,15}$/;
-
-function normalizePhone(value: string): string {
-  return value.replace(/[\s()-]/g, '');
-}
 
 function isEmail(value: string): boolean {
   return EMAIL_PATTERN.test(value.trim());

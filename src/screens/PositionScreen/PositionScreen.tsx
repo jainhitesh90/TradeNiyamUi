@@ -5,6 +5,7 @@ import { ApiError, api, endpoints } from '@/api';
 import { CustomText, Loader, Screen } from '@/components';
 import { styles } from '@/screens/PositionScreen/styles';
 import { useTheme } from '@/theme';
+import { formatContractName, formatFill, formatPnl, formatRupee } from '@/utils';
 
 type Position = {
   trading_symbol: string;
@@ -160,30 +161,6 @@ function shownPnl(position: Position): { value: number; unrealised: boolean } {
   return { value: position.realised_pnl, unrealised: false };
 }
 
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const;
-
-const MONTHLY_CONTRACT = /^([A-Z]+?)(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d+(?:\.\d+)?)(CE|PE)$/;
-
-function formatContractName(symbol: string): string {
-  const match = MONTHLY_CONTRACT.exec(symbol);
-  if (!match) {
-    return symbol;
-  }
-
-  const [, underlying, year, month, strike, option] = match;
-  const monthIndex = MONTHS.indexOf(month as (typeof MONTHS)[number]);
-  const expiryDay = lastTuesday(2000 + Number(year), monthIndex);
-  const monthLabel = `${month[0]}${month.slice(1).toLowerCase()}`;
-  const optionLabel = option === 'CE' ? 'Call' : 'Put';
-  return `${underlying} ${expiryDay} ${monthLabel} ${strike} ${optionLabel}`;
-}
-
-function lastTuesday(year: number, monthIndex: number): number {
-  const lastDay = new Date(year, monthIndex + 1, 0);
-  const daysAfterTuesday = (lastDay.getDay() - 2 + 7) % 7;
-  return lastDay.getDate() - daysAfterTuesday;
-}
-
 function productLabel(product: string): string {
   if (product === 'NRML' || product === 'CNC') {
     return 'Delivery';
@@ -192,28 +169,4 @@ function productLabel(product: string): string {
     return 'Intraday';
   }
   return product;
-}
-
-function formatFill(quantity: number, price: number): string {
-  const qty = Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(2);
-  return `${qty} ${formatRupee(price)}`;
-}
-
-function formatRupee(value: number): string {
-  const amount = Math.abs(value).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `₹${amount}`;
-}
-
-function formatPnl(value: number): string {
-  const amount = formatRupee(value);
-  if (value < 0) {
-    return `-${amount}`;
-  }
-  if (value > 0) {
-    return `+${amount}`;
-  }
-  return amount;
 }
