@@ -24,6 +24,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "light"
+        }
+      ],
+      [
         "expo-notifications",
         {
           "defaultChannel": "default"
@@ -36,7 +43,8 @@
           "image": "./assets/app_logo.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

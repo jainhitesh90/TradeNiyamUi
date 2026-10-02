@@ -3,6 +3,7 @@ import axios from 'axios';
 import { readAuthSession } from '@/api/session';
 
 const DEFAULT_BASE_URL = 'http://localhost:3000';
+const NGROK_HOST = /(^|\.)ngrok(-free)?\.(app|dev|io)$/i;
 
 export type QueryValue = string | number | boolean | null | undefined;
 
@@ -144,6 +145,10 @@ export class ApiClient {
       Accept: 'application/json',
       ...options.headers,
     };
+
+    if (NGROK_HOST.test(new URL(this.baseUrl).hostname)) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
 
     if (this.accessToken) {
       headers.Authorization = `Bearer ${this.accessToken}`;

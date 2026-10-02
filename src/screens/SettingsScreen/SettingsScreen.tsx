@@ -94,12 +94,15 @@ export function SettingsScreen() {
     }
   }
 
-  function logout() {
-    clearAuthSession();
-    api.setAccessToken(null);
-    setTheme(DEFAULT_THEME);
-    router.dismissAll();
-    router.replace('/login');
+  async function logout() {
+    try {
+      await clearAuthSession();
+    } finally {
+      api.setAccessToken(null);
+      setTheme(DEFAULT_THEME);
+      router.dismissAll();
+      router.replace('/login');
+    }
   }
 
   return (

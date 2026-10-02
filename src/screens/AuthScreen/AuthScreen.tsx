@@ -139,7 +139,7 @@ export function AuthScreen() {
       const data = await api.post<AuthSession>(path, authBody(), {
         headers: { Accept: '*/*' },
       });
-      saveAuthSession(data);
+      await saveAuthSession(data);
       api.setAccessToken(data.token);
       router.replace('/performance');
     } catch (err: unknown) {
