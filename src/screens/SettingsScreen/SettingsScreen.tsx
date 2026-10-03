@@ -35,13 +35,14 @@ export function SettingsScreen() {
   const [balance, setBalance] = useState('—');
   const [brokerConnected, setBrokerConnected] = useState(false);
   const [pauseTill, setPauseTill] = useState<number | null>(null);
+  const [killSwitchLoaded, setKillSwitchLoaded] = useState(false);
   const [locking, setLocking] = useState(false);
   const [lockError, setLockError] = useState<string | null>(null);
 
   const loadKillSwitch = useCallback(() => {
     return api
       .get<FnoKillSwitch>(endpoints.fnoKillSwitch, { headers: { Accept: '*/*' } })
-      .then((data) => parseEpoch(data?.fno_kill_switch?.pauseTill));
+      .then((data) => readPauseTill(data?.fno_kill_switch?.pauseTill));
   }, []);
 
   useFocusEffect(
@@ -53,6 +54,7 @@ export function SettingsScreen() {
         .then((epoch) => {
           if (!cancelled) {
             setPauseTill(epoch);
+            setKillSwitchLoaded(true);
             setLockError(null);
           }
         })
@@ -103,7 +105,9 @@ export function SettingsScreen() {
     }, [loadKillSwitch]),
   );
 
-  const fnoLocked = pauseTill !== null && pauseTill > Date.now();
+  const timedLock = pauseTill !== null && pauseTill > Date.now();
+  const lockedWithoutTime = killSwitchLoaded && pauseTill === null;
+  const fnoLocked = timedLock || lockedWithoutTime;
   const canLockFno = pauseTill !== null && pauseTill <= Date.now();
 
   async function lockFno(enabled: boolean) {
@@ -115,6 +119,7 @@ export function SettingsScreen() {
     try {
       await api.patch(endpoints.fnoKillSwitch);
       setPauseTill(await loadKillSwitch());
+      setKillSwitchLoaded(true);
       setLockError(null);
     } catch (err: unknown) {
       setLockError(messageFrom(err));
@@ -184,9 +189,9 @@ export function SettingsScreen() {
               <CustomText id="settings-lock-fno" variant="body">
                 Lock F&O trading
               </CustomText>
-              {fnoLocked && pauseTill !== null ? (
+              {fnoLocked ? (
                 <CustomText id="settings-lock-fno-until" variant="caption" style={{ color: colors.warning }}>
-                  {formatLockMessage(pauseTill)}
+                  {timedLock && pauseTill !== null ? formatLockMessage(pauseTill) : 'F&O trading is locked'}
                 </CustomText>
               ) : null}
               {lockError ? (
@@ -250,7 +255,10 @@ type FnoKillSwitch = {
   };
 };
 
-function parseEpoch(value: unknown): number | null {
+function readPauseTill(value: unknown): number | null {
+  if (value == null || value === '') {
+    return null;
+  }
   const amount = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(amount) ? amount : null;
 }

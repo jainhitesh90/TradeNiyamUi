@@ -11,6 +11,6 @@ export const endpoints = {
   rules: '/rules',
   brokers: '/brokers',
   upstoxAuthorize: '/upstox/authorize',
-  fnoKillSwitch: '/trading/fno_kill_switch',
+  fnoKillSwitch: '/trading-control/fno_kill_switch',
   fcmToken: '/notifications/tokens',
 } as const;
