@@ -21,7 +21,7 @@ export function SplashScreen() {
   return (
     <Screen style={styles.container}>
       <Image
-        accessibilityLabel="TradeNiyam"
+        accessibilityLabel="TradeRakshak"
         source={require('../../../assets/app_logo.png')}
         style={styles.logo}
         resizeMode="contain"

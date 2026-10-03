@@ -39,7 +39,7 @@ export function AppHeader() {
             </Pressable>
           ) : (
             <Image
-              accessibilityLabel="TradeNiyam"
+              accessibilityLabel="TradeRakshak"
               source={require('../../../assets/app_logo.png')}
               style={styles.logo}
               resizeMode="contain"
@@ -82,6 +82,6 @@ const pageTitles: Record<string, string> = {
 
 function pageTitle(pathname: string): string {
   const segment = pathname.split('/').filter(Boolean).pop() ?? '';
-  return pageTitles[segment] ?? 'TradeNiyam';
+  return pageTitles[segment] ?? 'TradeRakshak';
 }
 
