@@ -137,7 +137,7 @@ export function SettingsScreen() {
             </View>
           </View>
         </View>
-        <View accessibilityState={{ disabled: true }} style={rowStyle}>
+        {/* <View accessibilityState={{ disabled: true }} style={rowStyle}>
           <View style={styles.rowMain}>
             <SettingIcon
               name={{ ios: 'doc.text', android: 'description', web: 'description' }}
@@ -147,7 +147,7 @@ export function SettingsScreen() {
               Reports
             </CustomText>
           </View>
-        </View>
+        </View> */}
         <View style={rowStyle}>
           <View style={styles.rowMain}>
             <SettingIcon name={{ ios: 'lock', android: 'lock', web: 'lock' }} color={colors.text} />
