@@ -1,10 +1,19 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Switch } from 'react-native-paper';
 
-import { ApiError, api, clearAuthSession, endpoints, readAuthSession } from '@/api';
+import {
+  ApiError,
+  api,
+  brokerMappingsFrom,
+  clearAuthSession,
+  connectedBrokerMapping,
+  endpoints,
+  readAuthSession,
+  updateBrokerConnection,
+} from '@/api';
 import { CustomText, Screen } from '@/components';
 import { styles } from '@/screens/SettingsScreen/styles';
 import { DEFAULT_THEME, useTheme } from '@/theme';
@@ -12,6 +21,12 @@ import { formatBalance, formatLockMessage } from '@/utils';
 
 type UserBalance = {
   balance: number | string | null;
+};
+
+type User = {
+  brokerMapping?: unknown;
+  userBrokerMapping?: unknown;
+  user_broker_mapping?: unknown;
 };
 
 export function SettingsScreen() {
@@ -33,6 +48,7 @@ export function SettingsScreen() {
     useCallback(() => {
       let cancelled = false;
       setBrokerConnected(readAuthSession()?.brokerStatus === 'CONNECTED');
+
       loadKillSwitch()
         .then((epoch) => {
           if (!cancelled) {
@@ -45,34 +61,47 @@ export function SettingsScreen() {
             setLockError(messageFrom(err));
           }
         });
+
+      api
+        .get<UserBalance>(endpoints.balance, {
+          headers: { Accept: '*/*' },
+        })
+        .then((data) => {
+          if (!cancelled) {
+            setBalance(formatBalance(data.balance));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setBalance('—');
+          }
+        });
+
+      api
+        .get<User>(endpoints.user)
+        .then((data) => {
+          if (cancelled) {
+            return;
+          }
+          const connected = connectedBrokerMapping(brokerMappingsFrom(data));
+          const brokerStatus = connected ? 'CONNECTED' : 'DISCONNECTED';
+          updateBrokerConnection({
+            brokerId: connected?.brokerId ?? null,
+            brokerStatus,
+          });
+          setBrokerConnected(brokerStatus === 'CONNECTED');
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setBrokerConnected(readAuthSession()?.brokerStatus === 'CONNECTED');
+          }
+        });
+
       return () => {
         cancelled = true;
       };
     }, [loadKillSwitch]),
   );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    api
-      .get<UserBalance>(endpoints.balance, {
-        headers: { Accept: '*/*' },
-      })
-      .then((data) => {
-        if (!cancelled) {
-          setBalance(formatBalance(data.balance));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setBalance('—');
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const fnoLocked = pauseTill !== null && pauseTill > Date.now();
   const canLockFno = pauseTill !== null && pauseTill <= Date.now();
@@ -84,7 +113,7 @@ export function SettingsScreen() {
     setLocking(true);
     setLockError(null);
     try {
-      await api.patch(endpoints.fnoKillSwitch, { pauseTill: Date.now() + 5 * 60 * 1000 });
+      await api.patch(endpoints.fnoKillSwitch);
       setPauseTill(await loadKillSwitch());
       setLockError(null);
     } catch (err: unknown) {

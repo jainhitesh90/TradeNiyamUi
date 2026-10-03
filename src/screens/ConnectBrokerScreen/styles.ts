@@ -29,4 +29,7 @@ export const styles = StyleSheet.create({
     height: 56,
     resizeMode: 'contain',
   },
+  locked: {
+    opacity: 0.4,
+  },
 });

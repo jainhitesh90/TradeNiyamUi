@@ -5,6 +5,7 @@ export { Card } from '@/components/Card';
 export { CustomButton } from '@/components/CustomButton';
 export { CustomText } from '@/components/CustomText';
 export { GrowwConnectModal } from '@/components/GrowwConnectModal';
+export { UpstoxConnectModal } from '@/components/UpstoxConnectModal';
 export { Loader } from '@/components/Loader';
 export { Screen } from '@/components/Screen';
 export { TextField } from '@/components/TextField';

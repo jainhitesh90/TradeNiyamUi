@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Image, View, type ImageSourcePropType } from 'react-native';
 
-import { ApiError, api, endpoints, readAuthSession, updateBrokerConnection, type BrokerConnection } from '@/api';
+import {
+  ApiError,
+  api,
+  brokerMappingsFrom,
+  connectedBrokerMapping,
+  endpoints,
+  isConnectedStatus,
+  readAuthSession,
+  updateBrokerConnection,
+  type BrokerConnection,
+  type BrokerMappingEntry,
+} from '@/api';
 import { openInBrowser } from '@/browser/openInBrowser';
 import { CustomButton } from '@/components/CustomButton';
 import { CustomText } from '@/components/CustomText';
 import { GrowwConnectModal } from '@/components/GrowwConnectModal';
+import { UpstoxConnectModal } from '@/components/UpstoxConnectModal';
 import { Loader } from '@/components/Loader';
 import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/AppToast';
@@ -18,13 +30,10 @@ type Broker = {
   brokerLinkUrl: string;
 };
 
-type BrokerMapping = {
-  brokerId?: string;
-  brokerStatus: BrokerConnection | string;
-};
-
 type User = {
-  brokerMapping: BrokerMapping | null;
+  brokerMapping?: unknown;
+  userBrokerMapping?: unknown;
+  user_broker_mapping?: unknown;
 };
 
 const brokerLogos: Record<string, ImageSourcePropType> = {
@@ -40,7 +49,8 @@ export function ConnectBrokerScreen() {
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [growwBroker, setGrowwBroker] = useState<Broker | null>(null);
-  const [brokerMapping, setBrokerMapping] = useState<BrokerMapping | null>(null);
+  const [upstoxBroker, setUpstoxBroker] = useState<Broker | null>(null);
+  const [brokerMappings, setBrokerMappings] = useState<BrokerMappingEntry[] | null>(null);
   const [connection, setConnection] = useState(() => readAuthSession());
 
   useEffect(() => {
@@ -75,14 +85,13 @@ export function ConnectBrokerScreen() {
         if (cancelled) {
           return;
         }
-        const mapping = data.brokerMapping ?? null;
-        const brokerStatus: BrokerConnection = mapping?.brokerStatus === 'CONNECTED' ? 'CONNECTED' : 'DISCONNECTED';
-        const next = {
-          brokerId: mapping?.brokerId ?? null,
-          brokerStatus,
-        };
-        updateBrokerConnection(next);
-        setBrokerMapping(mapping);
+        const mappings = brokerMappingsFrom(data);
+        const connected = connectedBrokerMapping(mappings);
+        updateBrokerConnection({
+          brokerId: connected?.brokerId ?? null,
+          brokerStatus: connected ? 'CONNECTED' : 'DISCONNECTED',
+        });
+        setBrokerMappings(mappings);
         setConnection(readAuthSession());
       })
       .catch(() => {});
@@ -93,8 +102,13 @@ export function ConnectBrokerScreen() {
   }, []);
 
   function openBroker(broker: Broker) {
-    if (broker.brokerName.trim().toLowerCase() === 'groww') {
+    const name = broker.brokerName.trim().toLowerCase();
+    if (name === 'groww') {
       setGrowwBroker(broker);
+      return;
+    }
+    if (name === 'upstox') {
+      setUpstoxBroker(broker);
       return;
     }
     if (broker.brokerLinkUrl) {
@@ -102,21 +116,25 @@ export function ConnectBrokerScreen() {
     }
   }
 
-  async function disconnectBroker() {
-    if (disconnecting) {
+  async function disconnectBroker(brokerId: string) {
+    if (disconnecting || !brokerId) {
       return;
     }
 
     setDisconnecting(true);
     try {
-      await api.post(endpoints.markBrokerAsDisconnected, {}, {
+      await api.post(endpoints.markBrokerAsDisconnected, { brokerId }, {
         headers: { Accept: '*/*' },
       });
       updateBrokerConnection({
         brokerId: connection?.brokerId ?? null,
         brokerStatus: 'DISCONNECTED',
       });
-      setBrokerMapping((current) => (current ? { ...current, brokerStatus: 'DISCONNECTED' } : current));
+      setBrokerMappings((current) =>
+        current?.map((entry) =>
+          isConnectedStatus(entry.brokerStatus) ? { ...entry, brokerStatus: 'DISCONNECTED' } : entry,
+        ) ?? current,
+      );
       setConnection(readAuthSession());
     } catch (err: unknown) {
       const message = err instanceof ApiError
@@ -129,6 +147,8 @@ export function ConnectBrokerScreen() {
       setDisconnecting(false);
     }
   }
+
+  const activeBrokerId = connectedBrokerId(brokerMappings, connection);
 
   return (
     <Screen style={styles.container}>
@@ -149,43 +169,97 @@ export function ConnectBrokerScreen() {
       <View style={styles.grid}>
         {brokers.map((broker) => {
           const logo = brokerLogos[broker.brokerName.trim().toLowerCase()];
-          const connected = isConnectedBroker(broker, connection?.brokerId, connection?.brokerStatus);
+          const connected = isConnectedBroker(broker, activeBrokerId, activeBrokerId ? 'CONNECTED' : null);
+          const locked = activeBrokerId != null && !connected;
           return (
             <View
               key={broker.brokerId}
-              style={[styles.cell, { backgroundColor: colors.background, borderColor: colors.border }]}
+              pointerEvents={locked ? 'none' : 'auto'}
+              accessibilityState={{ disabled: locked }}
+              style={[
+                styles.cell,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                locked && styles.locked,
+              ]}
             >
               {logo ? (
                 <Image accessibilityLabel={broker.brokerName} source={logo} style={styles.logo} />
               ) : null}
-              <CustomText id={`broker-${broker.brokerId}-name`} variant="label">
+              <CustomText
+                id={`broker-${broker.brokerId}-name`}
+                variant="label"
+                style={locked ? { color: colors.textDim } : undefined}
+              >
                 {broker.brokerName}
               </CustomText>
-              <CustomButton
-                id={`broker-${broker.brokerId}-action`}
-                label={connected ? 'Disconnect' : 'Connect'}
-                variant="link"
-                loading={connected && disconnecting}
-                onPress={() => {
-                  if (connected) {
-                    void disconnectBroker();
-                    return;
-                  }
-                  openBroker(broker);
-                }}
-              />
+              {locked ? null : (
+                <CustomButton
+                  id={`broker-${broker.brokerId}-action`}
+                  label={connected ? 'Disconnect' : 'Connect'}
+                  variant="link"
+                  loading={connected && disconnecting}
+                  onPress={() => {
+                    if (connected) {
+                      void disconnectBroker(broker.brokerId);
+                      return;
+                    }
+                    openBroker(broker);
+                  }}
+                />
+              )}
             </View>
           );
         })}
       </View>
       <GrowwConnectModal
         visible={growwBroker != null}
+        brokerId={growwBroker?.brokerId ?? ''}
         brokerLinkUrl={growwBroker?.brokerLinkUrl ?? ''}
-        brokerMapping={brokerMapping}
+        brokerMappings={brokerMappings ?? []}
         onDismiss={() => setGrowwBroker(null)}
+      />
+      <UpstoxConnectModal
+        visible={upstoxBroker != null}
+        brokerId={upstoxBroker?.brokerId ?? ''}
+        onDismiss={() => setUpstoxBroker(null)}
+        onConnected={(brokerId) => {
+          updateBrokerConnection({ brokerId, brokerStatus: 'CONNECTED' });
+          setBrokerMappings((current) => markBrokerConnected(current ?? [], brokerId));
+          setConnection(readAuthSession());
+        }}
       />
     </Screen>
   );
+}
+
+function connectedBrokerId(
+  mappings: BrokerMappingEntry[] | null,
+  session: { brokerId: string | null; brokerStatus: BrokerConnection | null } | null,
+): string | null {
+  if (mappings) {
+    return connectedBrokerMapping(mappings)?.brokerId ?? null;
+  }
+  if (session?.brokerStatus === 'CONNECTED') {
+    return session.brokerId;
+  }
+  return null;
+}
+
+function markBrokerConnected(mappings: BrokerMappingEntry[], brokerId: string): BrokerMappingEntry[] {
+  const selectedId = brokerId.trim().toLowerCase();
+  let found = false;
+  const next = mappings.map((entry) => {
+    const entryId = String(entry.brokerId ?? '').trim().toLowerCase();
+    if (entryId === selectedId) {
+      found = true;
+      return { ...entry, brokerId, brokerStatus: 'CONNECTED' };
+    }
+    if (isConnectedStatus(entry.brokerStatus)) {
+      return { ...entry, brokerStatus: 'DISCONNECTED' };
+    }
+    return entry;
+  });
+  return found ? next : [...next, { brokerId, brokerStatus: 'CONNECTED' }];
 }
 
 function isConnectedBroker(

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { ApiError, api, endpoints, updateBrokerConnection } from '@/api';
+import { ApiError, api, brokerMappingFor, endpoints, updateBrokerConnection, type BrokerMappingEntry } from '@/api';
 import { openInBrowser } from '@/browser/openInBrowser';
 import { AppModal } from '@/components/AppModal';
 import { CustomButton } from '@/components/CustomButton';
@@ -9,14 +9,11 @@ import { CustomText } from '@/components/CustomText';
 import { styles } from '@/components/GrowwConnectModal/styles';
 import { TextField } from '@/components/TextField';
 
-type BrokerMapping = {
-  brokerStatus: string;
-} | null;
-
 type GrowwConnectModalProps = {
   visible: boolean;
+  brokerId: string;
   brokerLinkUrl: string;
-  brokerMapping: BrokerMapping;
+  brokerMappings: BrokerMappingEntry[];
   onDismiss: () => void;
 };
 
@@ -25,8 +22,9 @@ const generateTokenGuide =
 
 export function GrowwConnectModal({
   visible,
+  brokerId,
   brokerLinkUrl,
-  brokerMapping,
+  brokerMappings,
   onDismiss,
 }: GrowwConnectModalProps) {
   const [apiKey, setApiKey] = useState('');
@@ -48,7 +46,8 @@ export function GrowwConnectModal({
     setSaving(false);
   }, [visible]);
 
-  const disconnected = brokerMapping?.brokerStatus === 'DISCONNECTED';
+  const growwMapping = brokerMappingFor(brokerMappings, brokerId, 'groww');
+  const disconnected = String(growwMapping?.brokerStatus ?? '').trim().toUpperCase() === 'DISCONNECTED';
 
   function openGrowwLink() {
     if (brokerLinkUrl) {
@@ -73,8 +72,7 @@ export function GrowwConnectModal({
     setSaving(true);
     setFormError(null);
     try {
-      await api.post(endpoints.markBrokerAsConnected, {
-      }, {
+      await api.post(endpoints.markBrokerAsConnected, { brokerId }, {
         headers: { Accept: '*/*' },
       });
       updateBrokerConnection({ brokerId: 'groww', brokerStatus: 'CONNECTED' });
@@ -106,6 +104,7 @@ export function GrowwConnectModal({
     setSaving(true);
     try {
       await api.post(endpoints.brokerMapping, {
+        brokerId,
         apiKey: key,
         apiSecret: secret,
       }, {

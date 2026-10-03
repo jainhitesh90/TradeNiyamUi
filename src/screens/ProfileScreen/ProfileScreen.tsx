@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { ApiError, api, endpoints } from '@/api';
+import { ApiError, api, brokerMappingsFrom, connectedBrokerMapping, endpoints } from '@/api';
 import { Card, CustomText, Loader, Screen } from '@/components';
 import { styles } from '@/screens/ProfileScreen/styles';
 import { displayValue } from '@/utils';
@@ -11,7 +11,9 @@ type User = {
   name: string | null;
   emailId: string | null;
   phoneNo: string | null;
-  brokerMapping: { brokerId: string; brokerToken: string } | null;
+  brokerMapping?: unknown;
+  userBrokerMapping?: unknown;
+  user_broker_mapping?: unknown;
 };
 
 export function ProfileScreen() {
@@ -51,6 +53,7 @@ export function ProfileScreen() {
   }, []);
 
   const subtitle = account?.name || account?.emailId || 'Account';
+  const connectedBroker = connectedBrokerMapping(brokerMappingsFrom(account));
 
   return (
     <Screen style={styles.container}>
@@ -80,8 +83,8 @@ export function ProfileScreen() {
             <Field id="profile-name" label="Name" value={displayValue(account.name)} />
             <Field id="profile-email" label="Email" value={displayValue(account.emailId)} />
             <Field id="profile-phone" label="Phone" value={displayValue(account.phoneNo)} />
-            <Field id="profile-broker-id" label="Broker ID" value={displayValue(account.brokerMapping?.brokerId)} />
-            <Field id="profile-broker-token" label="Broker token" value={displayValue(account.brokerMapping?.brokerToken)} />
+            <Field id="profile-broker-id" label="Broker ID" value={displayValue(connectedBroker?.brokerId)} />
+            <Field id="profile-broker-token" label="Broker token" value={displayValue(connectedBroker?.brokerToken)} />
           </Card>
         </ScrollView>
       ) : null}

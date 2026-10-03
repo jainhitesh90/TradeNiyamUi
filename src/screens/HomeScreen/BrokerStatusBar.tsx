@@ -1,19 +1,14 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import { ApiError, api, endpoints, updateBrokerConnection } from '@/api';
+import { ApiError, api, brokerMappingsFrom, connectedBrokerMapping, endpoints, updateBrokerConnection } from '@/api';
 import { useToast } from '@/components';
 import { BrokerStatus } from '@/screens/HomeScreen/BrokerStatus';
 
-type BrokerConnection = 'CONNECTED' | 'DISCONNECTED';
-
-type BrokerMapping = {
-  brokerId: string;
-  brokerStatus: BrokerConnection;
-};
-
 type User = {
-  brokerMapping: BrokerMapping | null;
+  brokerMapping?: unknown;
+  userBrokerMapping?: unknown;
+  user_broker_mapping?: unknown;
 };
 
 export function BrokerStatusBar() {
@@ -31,8 +26,8 @@ export function BrokerStatusBar() {
           if (cancelled) {
             return;
           }
-          const mapping = data.brokerMapping;
-          const brokerStatus = mapping?.brokerStatus === 'CONNECTED' ? 'CONNECTED' : 'DISCONNECTED';
+          const mapping = connectedBrokerMapping(brokerMappingsFrom(data));
+          const brokerStatus = mapping ? 'CONNECTED' : 'DISCONNECTED';
           updateBrokerConnection({
             brokerId: mapping?.brokerId ?? null,
             brokerStatus,

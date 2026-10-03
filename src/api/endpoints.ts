@@ -10,6 +10,7 @@ export const endpoints = {
   orders: '/user/orders',
   rules: '/rules',
   brokers: '/brokers',
+  upstoxAuthorize: '/upstox/authorize',
   fnoKillSwitch: '/trading/fno_kill_switch',
   fcmToken: '/notifications/tokens',
 } as const;
